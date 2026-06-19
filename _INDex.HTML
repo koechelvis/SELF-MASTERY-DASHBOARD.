@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimalist Habit Tracker Widget</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #888888;
+            --primary: #4caf50;
+            --empty-square: #2d2d2d;
+            --accent: #81c784;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .tracker-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            width: 320px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+            letter-spacing: -0.5px;
+        }
+
+        .streak-badge {
+            background-color: rgba(76, 175, 80, 0.12);
+            color: var(--accent);
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .day-square {
+            aspect-ratio: 1;
+            background-color: var(--empty-square);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .day-square:hover {
+            transform: scale(1.1);
+            filter: brightness(1.2);
+        }
+
+        .day-square.completed {
+            background-color: var(--primary);
+            box-shadow: 0 0 6px rgba(76, 175, 80, 0.3);
+        }
+
+        .btn {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .btn:hover {
+            background-color: var(--accent);
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 16px;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+<div class="tracker-card">
+    <div class="header">
+        <h3 class="title">Deep Work Focus</h3>
+        <span class="streak-badge" id="streakDisplay">🔥 0 Days</span>
+    </div>
+    
+    <div class="heatmap" id="heatmapGrid"></div>
+
+    <button class="btn" id="toggleTodayBtn">Log Today's Progress</button>
+
+    <div class="stats">
+        <span id="completionRate">Completion: 0%</span>
+        <span>28-Day Window</span>
+    </div>
+</div>
+
+<script>
+    const STORAGE_KEY = 'minimal_habit_tracker_data';
+    const DAYS_COUNT = 28;
+
+    // Load existing data or build a baseline array
+    let habitHistory = JSON.parse(localStorage.getItem(STORAGE_KEY)) || new Array(DAYS_COUNT).fill(false);
+
+    const grid = document.getElementById('heatmapGrid');
+    const streakDisplay = document.getElementById('streakDisplay');
+    const completionRate = document.getElementById('completionRate');
+    const toggleBtn = document.getElementById('toggleTodayBtn');
+
+    function renderTracker() {
+        grid.innerHTML = '';
+        let totalCompleted = 0;
+        
+        habitHistory.forEach((isCompleted, index) => {
+            const square = document.createElement('div');
+            square.className = `day-square ${isCompleted ? 'completed' : ''}`;
+            square.title = `Day ${index + 1}`;
+            
+            // Interactive override: click any individual block to adjust history
+            square.addEventListener('click', () => {
+                habitHistory[index] = !habitHistory[index];
+                persistData();
+            });
+            
+            grid.appendChild(square);
+            if (isCompleted) totalCompleted++;
+        });
+
+        // Calculate active streak backwards from the current day (last item in history)
+        let currentStreak = 0;
+        for (let i = habitHistory.length - 1; i >= 0; i--) {
+            if (habitHistory[i]) {
+                currentStreak++;
+            } else {
+                if (i < habitHistory.length - 1) break;
+            }
+        }
+        
+        streakDisplay.textContent = `🔥 ${currentStreak} Day${currentStreak === 1 ? '' : 's'}`;
+        const percentage = Math.round((totalCompleted / DAYS_COUNT) * 100);
+        completionRate.textContent = `Completion: ${percentage}%`;
+        
+        toggleBtn.textContent = habitHistory[DAYS_COUNT - 1] ? "Undo Today's Log" : "Log Today's Progress";
+    }
+
+    function persistData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(habitHistory));
+        renderTracker();
+    }
+
+    toggleBtn.addEventListener('click', () => {
+        // Toggle the final index representing today's task entry
+        habitHistory[DAYS_COUNT - 1] = !habitHistory[DAYS_COUNT - 1];
+        persistData();
+    });
+
+    renderTracker();
+</script>
+
+</body>
+</html>
